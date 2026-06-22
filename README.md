@@ -2,8 +2,6 @@
 [![Downloads][download]][release]
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/SysCraft820/aquasecurity-kube-bench/blob/main/LICENSE)
 
-[download]: https://img.shields.io/github/downloads/SysCraft820/aquasecurity-kube-bench/total?logo=github
-[release-img]: https://img.shields.io/github/release/SysCraft820/aquasecurity-kube-bench.svg?logo=github
 [release]: https://github.com/SysCraft820/aquasecurity-kube-bench/releases
 
 <img src="docs/images/kube-bench.png" width="200" alt="kube-bench logo">
