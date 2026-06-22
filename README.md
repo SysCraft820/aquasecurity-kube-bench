@@ -1,16 +1,8 @@
-[![GitHub Release][release-img]][release]
-[![Downloads][download]][release]
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/SysCraft820/aquasecurity-kube-bench/blob/main/LICENSE)
-
-[release]: https://github.com/SysCraft820/aquasecurity-kube-bench/releases
-
-<img src="docs/images/kube-bench.png" width="200" alt="kube-bench logo">
+# aquasecurity-kube-bench
 
 kube-bench is a tool that checks whether Kubernetes is deployed securely by running the checks documented in the [CIS Kubernetes Benchmark](https://www.cisecurity.org/benchmark/kubernetes/).
 
 Tests are configured with YAML files, making this tool easy to update as test specifications evolve.
-
-![Kubernetes Bench for Security](/docs/images/output.png "Kubernetes Bench for Security")
 
 ## Quick start
 
