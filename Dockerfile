@@ -1,0 +1,56 @@
+FROM golang:1.26.4 AS build
+WORKDIR /go/src/github.com/aquasecurity/kube-bench/
+COPY makefile makefile
+COPY go.mod go.sum ./
+COPY main.go .
+COPY check/ check/
+COPY cmd/ cmd/
+COPY internal/ internal/
+ARG KUBEBENCH_VERSION
+RUN make build && cp kube-bench /go/bin/kube-bench
+
+FROM alpine:3.23.4 AS run
+WORKDIR /opt/kube-bench/
+
+# procps adds GNU ps for -C, -o cmd, --no-headers support: https://github.com/aquasecurity/kube-bench/pull/115/
+# findutils is used to get GNU xargs: https://github.com/aquasecurity/kube-bench/pull/1657
+# Openssl is used by OpenShift tests: https://github.com/aquasecurity/kube-bench/pull/537
+# glibc is used for running oc command
+# bash is used for running helper scripts
+RUN apk --no-cache upgrade \
+    && apk --no-cache add \
+        bash \
+        findutils \
+        gcompat \
+        jq \
+        kubectl \
+        openssl \
+        procps
+
+ENV PATH=$PATH:/usr/local/mount-from-host/bin:/go/bin
+
+COPY --from=build /go/bin/kube-bench /usr/local/bin/kube-bench
+COPY entrypoint.sh .
+COPY cfg/ cfg/
+COPY helper_scripts/check_files_owner_in_dir.sh /go/bin/
+RUN chmod a+x /go/bin/check_files_owner_in_dir.sh
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["install"]
+
+# Build-time metadata as defined at http://label-schema.org
+ARG BUILD_DATE
+ARG VCS_REF
+ARG KUBEBENCH_VERSION
+
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="kube-bench" \
+      org.label-schema.vendor="Aqua Security Software Ltd." \
+      org.label-schema.version=$KUBEBENCH_VERSION \
+      org.label-schema.release=$KUBEBENCH_VERSION \
+      org.label-schema.summary="Aqua security server" \
+      org.label-schema.maintainer="admin@aquasec.com" \
+      org.label-schema.description="Run the CIS Kubernetes Benchmark tests" \
+      org.label-schema.url="https://github.com/aquasecurity/kube-bench" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/aquasecurity/kube-bench" \
+      org.label-schema.schema-version="1.0"

@@ -1,0 +1,60 @@
+FROM golang:1.26.4 AS build
+WORKDIR /go/src/github.com/aquasecurity/kube-bench/
+COPY makefile makefile
+COPY go.mod go.sum ./
+COPY main.go .
+COPY check/ check/
+COPY cmd/ cmd/
+COPY internal/ internal/
+ARG KUBEBENCH_VERSION
+RUN make build && cp kube-bench /go/bin/kube-bench
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal AS run
+
+ARG K8S_PKGS_VERSION=1.34
+
+RUN microdnf install -y yum findutils openssl \
+  && yum -y update-minimal --security --sec-severity=Moderate --sec-severity=Important --sec-severity=Critical \
+  && yum update -y \
+  && yum install -y glibc jq procps \
+  && printf '%s\n' '[kubernetes]' 'name=Kubernetes' \
+       "baseurl=https://pkgs.k8s.io/core:/stable:/v${K8S_PKGS_VERSION}/rpm/" \
+       'enabled=1' 'gpgcheck=1' \
+       "gpgkey=https://pkgs.k8s.io/core:/stable:/v${K8S_PKGS_VERSION}/rpm/repodata/repomd.xml.key" \
+       > /etc/yum.repos.d/kubernetes.repo \
+  && yum install -y kubectl \
+  && yum clean all \
+  && microdnf remove yum || rpm -e -v yum \
+  && microdnf clean all \
+  && /usr/bin/kubectl version --client
+
+WORKDIR /opt/kube-bench/
+
+ENV PATH=$PATH:/usr/local/mount-from-host/bin
+
+COPY LICENSE /licenses/LICENSE
+COPY --from=build /go/bin/kube-bench /usr/local/bin/kube-bench
+COPY entrypoint.sh .
+COPY cfg/ cfg/
+COPY helper_scripts/check_files_owner_in_dir.sh /go/bin
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["install"]
+
+
+# Build-time metadata as defined at http://label-schema.org
+ARG BUILD_DATE
+ARG VCS_REF
+ARG KUBEBENCH_VERSION
+
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.description="Run the CIS Kubernetes Benchmark tests" \
+      org.label-schema.url="https://github.com/aquasecurity/kube-bench" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/aquasecurity/kube-bench" \
+      org.label-schema.schema-version="1.0" \
+      vendor="Aqua Security Software Ltd." \
+      maintainer="Aqua Security Software Ltd." \
+      version=$KUBEBENCH_VERSION \
+      release=$KUBEBENCH_VERSION \
+      summary="Aqua Security Kube-bench." \
+      description="Run the CIS Kubernetes Benchmark tests"
